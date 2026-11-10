@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FLOOD_LINE, parseNoaaTime, toSeries, parseHilo, computeGap, forecastWindows, highTides,
-  getStatus, formatTime, formatClock,
+  FLOOD_LINE, parseNoaaTime, toSeries, computeGap, forecastWindows,
+  getStatus, formatTime, formatClock, formatRange,
 } from '../flood.js';
 
 // All values are synthetic. A tide is a cosine at six-minute steps, peaking at `peakAt`.
@@ -16,17 +16,13 @@ const rows = (fn, from, to) => {
   for (let t = from; t <= to; t += STEP) out.push({ t: gmt(t), v: fn(t).toFixed(3) });
   return out;
 };
-// Build the three feeds. `offset` shifts readings from predictions; `lastReading` ends them early.
+// Build the two feeds. `offset` shifts readings from predictions; `lastReading` ends them early.
 function feeds({ peakAt, mid, amp, offset = 0, lastReading = NOW, now = NOW }) {
   const fn = tide(peakAt, mid, amp);
   return {
     now,
     predictions: rows(fn, now - 14 * HOUR, now + 50 * HOUR),
     readings: rows((t) => fn(t) + offset, now - 14 * HOUR, lastReading),
-    hilo: [
-      { t: gmt(peakAt), v: String(fn(peakAt)), type: 'H' },
-      { t: gmt(peakAt + PERIOD / 2), v: '0.5', type: 'L' },
-    ],
   };
 }
 
@@ -87,7 +83,6 @@ test('stale latest reading: unknown, table only', () => {
   assert.equal(s.tableOnly, true);
   assert.equal(s.gap, null);
   assert.ok(s.windows.length > 0); // table windows with gap 0
-  assert.equal(s.highs.length, 1);
 });
 
 test('reading 40 minutes old is still fresh', () => {
@@ -107,19 +102,17 @@ test('empty readings (v "") are skipped, all-empty is unknown', () => {
   assert.equal(none.reason, 'no-data');
 });
 
-test('null or failed fetches: unknown with error, highs only if hilo loaded', () => {
+test('null or failed fetches: unknown with error, windows only if predictions loaded', () => {
   const f = feeds({ peakAt: NOW + 2 * HOUR, mid: 4, amp: 3 });
   const a = getStatus({ ...f, readings: null });
   assert.equal(a.state, 'unknown');
   assert.equal(a.reason, 'error');
   assert.equal(a.latest, null);
   assert.ok(a.windows.length > 0);
-  assert.equal(a.highs.length, 1);
-  const b = getStatus({ ...f, predictions: null, hilo: null });
+  const b = getStatus({ ...f, predictions: null });
   assert.equal(b.state, 'unknown');
   assert.deepEqual(b.windows, []);
-  assert.deepEqual(b.highs, []);
-  assert.equal(getStatus({ now: NOW, readings: [], predictions: [], hilo: [] }).state, 'unknown');
+  assert.equal(getStatus({ now: NOW, readings: [], predictions: [] }).state, 'unknown');
 });
 
 test('mismatched timestamps are ignored: no matches means no gap', () => {
@@ -204,20 +197,29 @@ test('windows ignore the past and beyond 48 hours', () => {
   assert.deepEqual(forecastWindows(preds, 0, NOW), []);
 });
 
-test('high tides wet or dry once the gap is applied', () => {
-  const hilo = parseHilo([
-    { t: gmt(NOW + HOUR), v: '5.9', type: 'H' },
-    { t: gmt(NOW + 2 * HOUR), v: '0.2', type: 'L' },
-    { t: gmt(NOW + 13 * HOUR), v: '6.0', type: 'H' },
-    { t: gmt(NOW - HOUR), v: '7.0', type: 'H' },
-    { t: gmt(NOW + 49 * HOUR), v: '7.0', type: 'H' },
-  ]);
-  assert.deepEqual(highTides(hilo, 0, NOW).map((h) => h.wet), [false, false]);
-  const wet = highTides(hilo, 0.4, NOW);
-  assert.deepEqual(wet.map((h) => h.wet), [true, true]);
-  assert.ok(Math.abs(wet[0].forecast - 6.3) < 1e-9 && wet[0].table === 5.9);
-  assert.deepEqual(highTides(hilo, -0.2, NOW).map((h) => h.wet), [false, false]);
-  assert.equal(highTides(hilo, null, NOW)[0].forecast, 5.9);
+test('formatRange: same day, across midnight, open ended, ongoing', () => {
+  const start = Date.UTC(2026, 10, 10, 17, 6); // Tue 9:06 AM Pacific
+  assert.equal(formatRange({ start, end: start + 4 * HOUR }), 'Tue 9:06 AM to 1:06 PM');
+  assert.equal(formatRange({ start, end: start + 16 * HOUR }), 'Tue 9:06 AM to Wed 1:06 AM');
+  assert.equal(formatRange({ start, end: null }), 'Tue 9:06 AM onward');
+  assert.equal(formatRange({ start, end: start + 2 * HOUR, ongoing: true }), 'Now to 11:06 AM');
+  assert.equal(formatRange({ start, end: null, ongoing: true }), 'Now onward');
+});
+
+test('the window that holds now is marked ongoing; later ones are not', () => {
+  const s = getStatus(feeds({ peakAt: NOW, mid: 4, amp: 3 }));
+  assert.equal(s.state, 'yes');
+  assert.equal(s.windows[0].ongoing, true);
+  assert.ok(s.windows.length > 1);
+  assert.ok(s.windows.slice(1).every((w) => !w.ongoing));
+  const later = getStatus(feeds({ peakAt: NOW + 5 * HOUR, mid: 4, amp: 3 }));
+  assert.equal(later.state, 'no');
+  assert.ok(later.windows.every((w) => !w.ongoing));
+});
+
+test('a dry high tide adds no window', () => {
+  const s = getStatus(feeds({ peakAt: NOW + 6 * HOUR, mid: 3, amp: 2 })); // peaks at 5.0
+  assert.deepEqual(s.windows, []);
 });
 
 test('formatTime defaults and options', () => {

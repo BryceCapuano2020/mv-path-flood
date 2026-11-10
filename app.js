@@ -1,4 +1,4 @@
-import { getStatus, formatTime, formatClock } from './flood.js';
+import { getStatus, formatTime, formatClock, formatRange } from './flood.js';
 
 const BASE = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter' +
   '?station=9414290&datum=MLLW&units=english&format=json&application=mv-path-flood&time_zone=gmt';
@@ -29,10 +29,9 @@ async function fetchAll(now) {
   const results = await Promise.allSettled([
     load(`${BASE}&product=water_level&range=14`, 'data'),
     load(`${BASE}&product=predictions${range}`, 'predictions'),
-    load(`${BASE}&product=predictions&interval=hilo${range}`, 'predictions'),
   ]);
-  const [readings, predictions, hilo] = results.map((r) => (r.status === 'fulfilled' ? r.value : null));
-  return { readings, predictions, hilo };
+  const [readings, predictions] = results.map((r) => (r.status === 'fulfilled' ? r.value : null));
+  return { readings, predictions };
 }
 
 function lineFor(s) {
@@ -77,21 +76,15 @@ function render(s) {
   $('fig-gap').textContent = signed(s.gap);
   $('next-note').hidden = !s.tableOnly;
 
-  const list = $('highs');
+  const list = $('floods');
   list.replaceChildren();
-  if (!s.highs || !s.highs.length) {
-    list.append(el('li', 'none', 'No high tides to show.'));
+  if (!s.windows.length) {
+    list.append(el('li', 'none', 'None in the next 48 hours.'));
     return;
   }
-  for (const h of s.highs) {
+  for (const w of s.windows) {
     const li = el('li');
-    li.append(el('span', 'when', formatTime(h.time)));
-    if (s.tableOnly) {
-      li.append(el('span', 'h', ft(h.table)), el('span', 'tbl', 'table'));
-    } else {
-      li.append(el('span', 'h', ft(h.forecast)), el('span', 'tbl', `table ${ft(h.table)}`),
-        el('span', h.wet ? 'tag wet' : 'tag dry', h.wet ? 'WET' : 'DRY'));
-    }
+    li.append(el('span', 'when', formatRange(w)), el('span', 'h', ft(w.peak)), el('span', 'unit', 'ft peak'));
     list.append(li);
   }
 }
