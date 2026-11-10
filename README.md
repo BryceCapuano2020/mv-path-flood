@@ -12,7 +12,7 @@ The page reads NOAA station 9414290 every five minutes. It works out how far the
 
     npm test
 
-Node 22, no dependencies. The logic lives in `flood.js`.
+Node 22, no dependencies.
 
 ## Data
 
