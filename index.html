@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Is the Mill Valley bike path flooded?</title>
+<meta name="description" content="A live answer from the San Francisco tide gauge. Is the Mill Valley bike path under water right now, and when is the next high tide that could flood it?">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Is the Mill Valley bike path flooded?">
+<meta property="og:description" content="A live answer from the San Francisco tide gauge, with the next 48 hours of high tides.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://brycecapuano2020.github.io/mv-path-flood/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b5cad'/%3E%3Cpath d='M3 15q3.25-4 6.5 0t6.500 0 6.500 0 6.500 0v4q-3.250-4-6.500 0t-6.500 0-6.500 0-6.500 0z' fill='%23fff'/%3E%3Cpath d='M3 24q3.250-4 6.500 0t6.500 0 6.500 0 6.500 0v4H3z' fill='%23fff' opacity='.6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Is the Mill Valley bike path flooded?</h1>
+
+  <section class="answer" id="answer" aria-live="polite" aria-atomic="true" data-state="unknown">
+    <p class="big" id="answer-word">...</p>
+    <p class="line" id="answer-line">Checking the gauge.</p>
+  </section>
+
+  <section class="figures" aria-label="Gauge figures">
+    <div class="fig">
+      <span class="label">Water now</span>
+      <span class="num" id="fig-now">-</span><span class="unit">ft</span>
+    </div>
+    <div class="fig">
+      <span class="label">Flood line</span>
+      <span class="num" id="fig-line">6.25</span><span class="unit">ft</span>
+    </div>
+    <div class="fig">
+      <span class="label">Above tide table</span>
+      <span class="num" id="fig-gap">-</span><span class="unit">ft</span>
+    </div>
+  </section>
+
+  <section class="next" aria-labelledby="next-h">
+    <h2 id="next-h">Next 48 hours</h2>
+    <p class="note" id="next-note" hidden>The live gap is missing, so these are table heights.</p>
+    <ul id="highs"><li class="none">Loading high tides.</li></ul>
+  </section>
+
+  <section class="faq" aria-labelledby="how-h">
+    <h2 id="how-h">How it works</h2>
+    <p>This page reads the live San Francisco tide gauge every five minutes. It adds how far the water is running above the tide table to the next two days of high tides. The flood line of 6.25 ft comes from rider reports and is approximate. Trust your eyes over this page.</p>
+  </section>
+
+  <footer>
+    <p class="updated">Updated <time id="updated">-</time></p>
+    <p class="links">
+      <a href="https://tidesandcurrents.noaa.gov/stationhome.html?id=9414290">NOAA station page</a>
+      <a href="https://github.com/BryceCapuano2020/mv-path-flood">Source on GitHub</a>
+    </p>
+  </footer>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
