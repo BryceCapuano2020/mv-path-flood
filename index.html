@@ -21,6 +21,7 @@
   <section class="answer" id="answer" aria-live="polite" aria-atomic="true" data-state="unknown">
     <p class="big" id="answer-word">...</p>
     <p class="line" id="answer-line">Checking the gauge.</p>
+    <noscript><p class="line">This page needs JavaScript to read the gauge.</p></noscript>
   </section>
 
   <section class="figures" aria-label="Gauge figures">
@@ -40,7 +41,7 @@
 
   <section class="next" aria-labelledby="next-h">
     <h2 id="next-h">Next 48 hours</h2>
-    <p class="note" id="next-note" hidden>The live gap is missing, so these are table heights.</p>
+    <p class="note" id="next-note" hidden>The live reading is missing, so these are tide table heights.</p>
     <ul id="highs"><li class="none">Loading high tides.</li></ul>
   </section>
 
@@ -50,7 +51,7 @@
   </section>
 
   <footer>
-    <p class="updated">Updated <time id="updated">-</time></p>
+    <p class="updated">Updated <span id="updated">-</span>. Last gauge reading <span id="reading">-</span>.</p>
     <p class="links">
       <a href="https://tidesandcurrents.noaa.gov/stationhome.html?id=9414290">NOAA station page</a>
       <a href="https://github.com/BryceCapuano2020/mv-path-flood">Source on GitHub</a>

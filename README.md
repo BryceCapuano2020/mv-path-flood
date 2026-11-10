@@ -2,7 +2,7 @@
 
 A one-page site that answers from the live San Francisco tide gauge.
 
-Live: https://brycecapuano2020.github.io/mv-path-flood/
+It is live at https://brycecapuano2020.github.io/mv-path-flood/
 
 ## How it works
 

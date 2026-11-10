@@ -226,3 +226,18 @@ test('formatTime defaults and options', () => {
   assert.equal(formatClock(ms), '7:04 PM');
   assert.equal(formatTime(ms, { hour: 'numeric', hour12: false }), '19');
 });
+
+test('reading over the line but forecast already under: until is the next forecast sample', () => {
+  const f = feeds({ peakAt: NOW, mid: 3, amp: 2 });
+  f.readings[f.readings.length - 1].v = '6.5';
+  const s = getStatus(f);
+  assert.equal(s.state, 'yes');
+  assert.deepEqual(s.windows, []);
+  assert.equal(s.until, NOW + STEP);
+});
+
+test('over the line through the whole horizon: YES with a null until', () => {
+  const s = getStatus(feeds({ peakAt: NOW, mid: 7, amp: 0.1 }));
+  assert.equal(s.state, 'yes');
+  assert.equal(s.until, null);
+});

@@ -99,10 +99,11 @@ export function getStatus({ readings, predictions, hilo, now }) {
     !over && obs.some((r) => r.value >= FLOOD_LINE && r.time >= now - WET_AFTER_MINUTES * MIN && r.time <= now);
   const soon = next && next.start - now <= SOON_HOURS * HOUR;
   // Over now: the window that holds now starts at the next sample; if the forecast already
-  // has the water under the line, say it drops now.
+  // has the water under the line, it drops by the next forecast sample.
   const holdsNow = next && next.start - now <= 6 * MIN;
+  const nextSample = pred.find((p) => p.time > now)?.time ?? null;
   const state = over ? 'yes' : soon ? 'soon' : 'no';
-  const until = over ? (holdsNow ? next.end : now) : next ? next.start : null;
+  const until = over ? (holdsNow ? next.end : nextSample) : next ? next.start : null;
   return { ...base, state, tableOnly: false, until, mayBeWet, reason: null };
 }
 

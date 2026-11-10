@@ -17,7 +17,7 @@ function stamp(ms) {
 }
 
 async function load(url, key) {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
   if (!res.ok) throw new Error('bad status');
   const json = await res.json();
   if (!json || json.error || !Array.isArray(json[key])) throw new Error('no data');
@@ -36,7 +36,11 @@ async function fetchAll(now) {
 }
 
 function lineFor(s) {
-  if (s.state === 'unknown') return "Can't reach the gauge. Showing the tide table only.";
+  if (s.state === 'unknown') {
+    return s.reason === 'stale'
+      ? 'The gauge has not reported lately. Showing the tide table only.'
+      : "Can't reach the gauge. Showing the tide table only.";
+  }
   if (s.state === 'yes') {
     return s.until == null
       ? 'Water stays over the line for the next two days.'
@@ -59,10 +63,15 @@ function el(tag, cls, text) {
   return e;
 }
 
+// Set text only when it changes, so the live region speaks only on news.
+function put(id, text) {
+  if ($(id).textContent !== text) $(id).textContent = text;
+}
+
 function render(s) {
   $('answer').dataset.state = s.state;
-  $('answer-word').textContent = WORDS[s.state] || WORDS.unknown;
-  $('answer-line').textContent = lineFor(s);
+  put('answer-word', WORDS[s.state] || WORDS.unknown);
+  put('answer-line', lineFor(s));
   $('fig-now').textContent = ft(s.latest && s.latest.value);
   $('fig-line').textContent = ft(s.line);
   $('fig-gap').textContent = signed(s.gap);
@@ -93,8 +102,10 @@ async function refresh() {
   try {
     const now = Date.now();
     const data = await fetchAll(now);
-    render(getStatus({ ...data, now }));
+    const s = getStatus({ ...data, now });
+    render(s);
     $('updated').textContent = formatClock(now);
+    $('reading').textContent = s.latest ? formatClock(s.latest.time) : '-';
     lastRun = now;
   } catch {
     // Leave the last good view in place.
