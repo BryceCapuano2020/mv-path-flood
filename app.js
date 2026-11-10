@@ -1,4 +1,4 @@
-import { getStatus, formatTime, formatClock, formatRange } from './flood.js';
+import { getStatus, formatTime, formatClock, formatRange } from './flood.js?v=2';
 
 const BASE = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter' +
   '?station=9414290&datum=MLLW&units=english&format=json&application=mv-path-flood&time_zone=gmt';
