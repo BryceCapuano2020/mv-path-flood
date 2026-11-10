@@ -19,19 +19,10 @@ export function parseNoaaTime(t) {
 
 // NOAA rows [{t, v}] -> [{time, value}], dropping empty or unparsable rows, sorted by time.
 export function toSeries(rows) {
-  return parseRows(rows).map(({ time, value }) => ({ time, value }));
-}
-
-// NOAA hilo rows -> [{time, value, type}], sorted.
-export function parseHilo(rows) {
-  return parseRows(rows, (r) => ({ type: r.type }));
-}
-
-function parseRows(rows, extra = () => ({})) {
   if (!Array.isArray(rows)) return [];
   return rows
     .filter((r) => r && r.v !== '' && r.v != null)
-    .map((r) => ({ time: parseNoaaTime(r.t), value: Number(r.v), ...extra(r) }))
+    .map((r) => ({ time: parseNoaaTime(r.t), value: Number(r.v) }))
     .filter((p) => Number.isFinite(p.time) && Number.isFinite(p.value))
     .sort((a, b) => a.time - b.time);
 }
@@ -64,17 +55,7 @@ export function forecastWindows(predictions, gap, now, line = FLOOD_LINE, hours 
   return windows;
 }
 
-// High tides in (now, now + hours] from parseHilo output.
-export function highTides(hilo, gap, now, line = FLOOD_LINE, hours = FORECAST_HOURS) {
-  return hilo
-    .filter((h) => h.type === 'H' && h.time > now && h.time <= now + hours * HOUR)
-    .map((h) => {
-      const forecast = h.value + (gap ?? 0);
-      return { time: h.time, table: h.value, forecast, wet: forecast >= line };
-    });
-}
-
-export function getStatus({ readings, predictions, hilo, now }) {
+export function getStatus({ readings, predictions, now }) {
   const obs = toSeries(readings);
   const pred = toSeries(predictions);
   const latest = obs.length ? obs[obs.length - 1] : null;
@@ -87,8 +68,7 @@ export function getStatus({ readings, predictions, hilo, now }) {
 
   const g = reason ? 0 : gap;
   const windows = forecastWindows(pred, g, now);
-  const highs = highTides(parseHilo(hilo), g, now);
-  const base = { line: FLOOD_LINE, latest, gap: reason ? null : gap, windows, highs };
+  const base = { line: FLOOD_LINE, latest, gap: reason ? null : gap, windows };
   if (reason) {
     return { ...base, state: 'unknown', tableOnly: true, until: null, mayBeWet: false, reason };
   }
@@ -103,6 +83,7 @@ export function getStatus({ readings, predictions, hilo, now }) {
   const holdsNow = next && next.start - now <= 6 * MIN;
   const nextSample = pred.find((p) => p.time > now)?.time ?? null;
   const state = over ? 'yes' : soon ? 'soon' : 'no';
+  if (over && holdsNow) next.ongoing = true;
   const until = over ? (holdsNow ? next.end : nextSample) : next ? next.start : null;
   return { ...base, state, tableOnly: false, until, mayBeWet, reason: null };
 }
@@ -120,4 +101,13 @@ export function formatTime(ms, opts = { weekday: 'short', hour: 'numeric', minut
 
 export function formatClock(ms) {
   return fmt(ms, { hour: 'numeric', minute: '2-digit' });
+}
+
+// A flood window as riders read it: "Tue 9:06 AM to 12:54 PM", "Now to 12:54 PM",
+// "Tue 11:30 PM to Wed 1:10 AM", "Tue 9:06 AM onward" when it runs past the forecast.
+export function formatRange({ start, end, ongoing }) {
+  const from = ongoing ? 'Now' : formatTime(start);
+  if (end == null) return `${from} onward`;
+  const sameDay = fmt(start, { weekday: 'short' }) === fmt(end, { weekday: 'short' });
+  return `${from} to ${sameDay ? formatClock(end) : formatTime(end)}`;
 }
